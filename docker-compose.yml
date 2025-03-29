@@ -17,6 +17,16 @@ services:
         sed -ri -e 's!post_max_size = 8M!post_max_size = 100M!g' /usr/local/etc/php/php.ini-production &&
         cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini &&
         a2enmod rewrite &&
+        a2enmod dump_io &&
         apache2-foreground
       "
     restart: unless-stopped
+# service apache2 --full-restart
+# a2enmod dump_io
+# apt-get update
+# apt-get install -y nano
+# Add this in the site-available/000-default.conf file to enable the dump_io module
+#  DumpIOInput On
+#  DumpIOOutput On
+#  LogLevel dumpio:trace7
+

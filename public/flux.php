@@ -1,7 +1,8 @@
 <?php
-include_once 'auth_check.php';
+require_once __DIR__ . '/../utils/auth_check.php';
 requireLogin();
-include_once 'config.php';
+
+require_once __DIR__ . '/../utils/config.php';
 
 $uploadSuccess = [];
 $uploadErrors = [];
@@ -14,6 +15,7 @@ $ALLOWED_MIME_TYPES = $_ENV['ALLOWED_MIME_TYPES'];
 if (isset($_GET['message'])) {
     $message = $_GET['message'];
 }
+
 
 // Handle file upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
@@ -45,7 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
                     $uploadErrors[] = $fileName . " (File type not allowed: " . $fileMimeType . ")";
                     continue;
                 }
-                
                 $targetFile = $uploadDir . '/' . $fileName;
                 
                 if (move_uploaded_file($_FILES['files']['tmp_name'][$i], $targetFile)) {
@@ -80,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
         $uploadErrors[] = "Invalid directory selected.";
     }
 }
+//print_r($uploadErrors);
 
 // Function to list files in a directory
 function listFiles($path) {

@@ -1,6 +1,10 @@
 <?php
 // Define the same directories as in upload.php
-include_once 'config.php';
+
+require_once __DIR__ . '/../utils/auth_check.php';
+requireLogin();
+
+require_once __DIR__ . '/../utils/config.php';
 
 // Security check: Validate directory parameter
 if (!isset($_GET['dir']) || !array_key_exists($_GET['dir'], $directories)) {

@@ -1,13 +1,13 @@
 <?php
 
-require_once __DIR__ . '/auth_check.php';
+require_once __DIR__ . '/../utils/auth_check.php';
 
 if (isLoggedIn()) {
     header('Location: flux.php');
     exit;
 }
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/../utils/config.php';
 
 $error = null;
 

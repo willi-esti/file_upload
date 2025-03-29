@@ -1,86 +1,87 @@
 <?php
-// Define the same directories as in upload.php for consistency
-include_once 'config.php';
-// Process download request
-if (isset($_GET['dir'])) {
-    $requestedDir = $_GET['dir'];
+
+require_once __DIR__ . '/../utils/auth_check.php';
+requireLogin();
+
+require_once __DIR__ . '/../utils/config.php';
+
+// Security check: Validate directory parameter
+if (!isset($_GET['dir']) || 
+    !is_string($_GET['dir']) || 
+    empty($_GET['dir']) || 
+    //!preg_match('/^[a-zA-Z0-9_]+$/', $_GET['dir']) || // Allow only alphanumeric and underscore
+    !array_key_exists($_GET['dir'], $directories)) {
+    die('Invalid directory specified.');
+}
+$requestedDir = $_GET['dir'];
+
+$dirPath = $directories[$requestedDir];
+
+if (isset($_GET['action']) && $_GET['action'] === 'download_all') {
+    require_once __DIR__ . '/../vendor/autoload.php';
     
-    // Validate that the requested directory exists in our configuration
-    if (!array_key_exists($requestedDir, $directories)) {
-        die("Error: Invalid directory specified.");
+    $zip = new \ZipStream\ZipStream(
+        outputName: $requestedDir . '_files.zip',
+    );
+    
+    $dirIterator = new DirectoryIterator($dirPath);
+    //print_r($dirIterator);
+    
+    foreach ($dirIterator as $fileInfo) {
+        //echo 'File: ' . $fileInfo->getFilename() . '<br>';
+        if ($fileInfo->isFile()) {
+            $filePath = $fileInfo->getPathname();
+            $zip->addFileFromPath($fileInfo->getFilename(), $filePath);
+            //print_r($fileInfo->getFilename());
+        }
+    }
+    //print_r($zip);
+
+    $zip->finish();
+    exit;
+} else if (isset($_GET['file'])) {
+    echo '<h1>Download File</h1>';
+    $requestedFile = $_GET['file'];
+    $filePath = $dirPath . '/' . $requestedFile;
+    
+    $realFilePath = realpath($filePath);
+    $realDirPath = realpath($dirPath);
+    
+    if ($realFilePath === false || !file_exists($realFilePath)) {
+        die("Error: File does not exist.");
     }
     
-    $dirPath = $directories[$requestedDir];
+    if (strpos($realFilePath, $realDirPath) !== 0) {
+        die("Error: Access denied.");
+    }
     
-    // Check if this is a download all request
-    if (isset($_GET['action']) && $_GET['action'] === 'download_all') {
-        // Use ZipStream to create and stream ZIP files
-        require 'vendor/autoload.php'; // Include ZipStream library
-        use ZipStream\ZipStream;
-
-        $zip = new ZipStream($requestedDir . '_files.zip');
-
-        $dirIterator = new DirectoryIterator($dirPath);
-        foreach ($dirIterator as $fileInfo) {
-            if ($fileInfo->isFile()) {
-                $filePath = $fileInfo->getPathname();
-                $zip->addFileFromPath($fileInfo->getFilename(), $filePath);
-            }
+    $fileInfo = pathinfo($realFilePath);
+    $fileName = $fileInfo['basename'];
+    
+    header('Content-Description: File Transfer');
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate');
+    header('Pragma: public');
+    header('Content-Length: ' . filesize($realFilePath));
+    
+    ob_clean();
+    flush();
+    
+    $chunkSize = 1024 * 1024; // 1MB
+    $handle = fopen($realFilePath, 'rb');
+    if ($handle) {
+        while (!feof($handle)) {
+            echo fread($handle, $chunkSize);
+            flush(); // Ensure the buffer is sent to the client
         }
-
-        $zip->finish();
-        exit;
+        fclose($handle);
     }
-    // Regular single file download
-    elseif (isset($_GET['file'])) {
-        $requestedFile = $_GET['file'];
-        $filePath = $dirPath . '/' . $requestedFile;
-        
-        // Validate the file exists and prevent directory traversal attacks
-        $realFilePath = realpath($filePath);
-        $realDirPath = realpath($dirPath);
-        
-        if ($realFilePath === false || !file_exists($realFilePath)) {
-            die("Error: File does not exist.");
-        }
-        
-        // Security check to ensure the file is within the intended directory
-        if (strpos($realFilePath, $realDirPath) !== 0) {
-            die("Error: Access denied.");
-        }
-        
-        // Get file information
-        $fileInfo = pathinfo($realFilePath);
-        $fileName = $fileInfo['basename'];
-        
-        // Set headers for download
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . $fileName . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($realFilePath));
-        
-        // Clear output buffer
-        ob_clean();
-        flush();
-        
-        // Stream the file in chunks to reduce memory usage
-        $chunkSize = 1024 * 1024; // 1MB
-        $handle = fopen($realFilePath, 'rb');
-        if ($handle) {
-            while (!feof($handle)) {
-                echo fread($handle, $chunkSize);
-                flush(); // Ensure the buffer is sent to the client
-            }
-            fclose($handle);
-        }
-        exit;
-    }
-} 
+    exit;
+}
 
 // No valid parameters, redirect back to upload page
-header('Location: upload.php');
+//header('Location: flux.php');
 exit;
 ?>
