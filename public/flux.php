@@ -1,5 +1,4 @@
 <?php
-
 include_once 'auth_check.php';
 requireLogin();
 include_once 'config.php';
@@ -8,6 +7,9 @@ $uploadSuccess = [];
 $uploadErrors = [];
 $message = null;
 
+// Define allowed file extensions and MIME types
+$ALLOWED_EXTENSIONS = $_ENV['ALLOWED_EXTENSIONS'];
+$ALLOWED_MIME_TYPES = $_ENV['ALLOWED_MIME_TYPES'];
 // Check if there's a message from another page (like delete.php)
 if (isset($_GET['message'])) {
     $message = $_GET['message'];
@@ -26,14 +28,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['files'])) {
         
         for ($i = 0; $i < $totalFiles; $i++) {
             if ($_FILES['files']['error'][$i] === UPLOAD_ERR_OK) {
-                $targetFile = $uploadDir . '/' . basename($_FILES['files']['name'][$i]);
+                $fileName = basename($_FILES['files']['name'][$i]);
+                $fileExtension = strtolower(substr($fileName, strrpos($fileName, ".")));
+                //echo $fileExtension;
+                //print_r($ALLOWED_EXTENSIONS);
+                
+                // Check if file extension is allowed
+                if (!in_array($fileExtension, $ALLOWED_EXTENSIONS)) {
+                    $uploadErrors[] = $fileName . " (File extension not allowed)";
+                    continue;
+                }
+                
+                // Check MIME type
+                $fileMimeType = mime_content_type($_FILES['files']['tmp_name'][$i]);
+                if (!in_array($fileMimeType, $ALLOWED_MIME_TYPES)) {
+                    $uploadErrors[] = $fileName . " (File type not allowed: " . $fileMimeType . ")";
+                    continue;
+                }
+                
+                $targetFile = $uploadDir . '/' . $fileName;
                 
                 if (move_uploaded_file($_FILES['files']['tmp_name'][$i], $targetFile)) {
-                    $uploadSuccess[] = basename($_FILES['files']['name'][$i]);
+                    $uploadSuccess[] = $fileName;
                 } else {
-                    $uploadErrors[] = basename($_FILES['files']['name'][$i]);
+                    $uploadErrors[] = $fileName;
                 }
-            } else if  ($_FILES['files']['error'][$i] !== UPLOAD_ERR_OK) {
+            } else if ($_FILES['files']['error'][$i] !== UPLOAD_ERR_OK) {
                 // Handle specific upload errors
                 switch ($_FILES['files']['error'][$i]) {
                     case UPLOAD_ERR_INI_SIZE:
@@ -177,12 +197,13 @@ function listFiles($path) {
     </style>
 </head>
 <body>
+    
+    <div style="text-align: right; margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center;">
+        <span style="margin-right: 15px; font-weight: 500;">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
+        <a href="logout.php" style="text-decoration: none; background-color: #dc3545; color: white; padding: 8px 15px; border-radius: 4px; font-weight: bold; transition: background-color 0.3s;">Logout</a>
+    </div>
     <h2>File Manager</h2>
     
-    <div style="text-align: right; margin-bottom: 20px;">
-        <span>Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
-        <a href="logout.php" style="margin-left: 10px; color: #dc3545;">Logout</a>
-    </div>
 
     <?php if (!empty($uploadSuccess)): ?>
         <p><strong class="success">Successfully uploaded: <?= htmlspecialchars(implode(', ', $uploadSuccess)) ?></strong></p>
@@ -206,7 +227,66 @@ function listFiles($path) {
         </select>
         
         <label for="files">Select Files:</label>
-        <input type="file" name="files[]" id="files" multiple required>
+        <?php
+        
+        $maxUploadSize = min(
+            convertToBytes(ini_get('upload_max_filesize')),
+            convertToBytes(ini_get('post_max_size'))
+        );
+        //echo '<input type="hidden" name="MAX_FILE_SIZE" value="' . $maxUploadSize . '">';
+        $maxUploadSizeFormatted = formatBytes($maxUploadSize);
+        ?>
+        <input type="file" name="files[]" id="files" multiple required
+               onchange="validateFileSize(this, <?= $maxUploadSize ?>)">
+        <small>Maximum upload size: <?= $maxUploadSizeFormatted ?></small><br>
+        
+        <script>
+        function validateFileSize(input, maxSize) {
+            const files = input.files;
+            for (let i = 0; i < files.length; i++) {
+            if (files[i].size > maxSize) {
+                alert(`File "${files[i].name}" exceeds the maximum upload size of ${formatBytes(maxSize)}.`);
+                input.value = ''; // Clear the input
+                return false;
+            }
+            }
+            return true;
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        </script>
+        
+        <?php
+        // Helper function to convert PHP size strings (like 8M, 200K) to bytes
+        function convertToBytes($size) {
+            $unit = strtolower(substr($size, -1));
+            $value = (int)$size;
+            
+            switch ($unit) {
+            case 'g': $value *= 1024;
+            case 'm': $value *= 1024;
+            case 'k': $value *= 1024;
+            }
+            
+            return $value;
+        }
+        
+        // Helper function to format bytes to human-readable format
+        function formatBytes($bytes, $precision = 2) {
+            $units = ['Bytes', 'KB', 'MB', 'GB'];
+            $bytes = max($bytes, 0);
+            $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+            $pow = min($pow, count($units) - 1);
+            $bytes /= pow(1024, $pow);
+            return round($bytes, $precision) . ' ' . $units[$pow];
+        }
+        ?>
         <button type="submit">Upload</button>
     </form>
     <h3>Directory Contents</h3>

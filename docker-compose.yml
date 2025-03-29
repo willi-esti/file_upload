@@ -13,6 +13,9 @@ services:
       bash -c "
         sed -ri -e 's!/var/www/html!$${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf &&
         sed -ri -e 's!/var/www/!$${APACHE_DOCUMENT_ROOT}/!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf &&
+        sed -ri -e 's!upload_max_filesize = 2M!upload_max_filesize = 100M!g' /usr/local/etc/php/php.ini-production &&
+        sed -ri -e 's!post_max_size = 8M!post_max_size = 100M!g' /usr/local/etc/php/php.ini-production &&
+        cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini &&
         a2enmod rewrite &&
         apache2-foreground
       "

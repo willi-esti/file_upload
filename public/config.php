@@ -14,13 +14,23 @@ try {
     $dotenv->load();
 
     // Check if the required environment variables are set
-    $requiredEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'DIRECTORIES_JSON'];
+    $requiredEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'DIRECTORIES_JSON', 'ALLOWED_EXTENSIONS', 'ALLOWED_MIME_TYPES'];
     foreach ($requiredEnvVars as $var) {
         if (!isset($_ENV[$var])) {
             throw new Exception("Environment variable '$var' is not set.");
         } else if (empty($_ENV[$var])) {
             throw new Exception("Environment variable '$var' is empty.");
         }
+    }
+    if (is_string($_ENV['ALLOWED_EXTENSIONS'])) {
+        $_ENV['ALLOWED_EXTENSIONS'] = explode(',', $_ENV['ALLOWED_EXTENSIONS']);
+    } else if (!is_array($_ENV['ALLOWED_EXTENSIONS'])) {
+        throw new Exception('ALLOWED_EXTENSIONS environment variable is not a valid string or array.');
+    }
+    if (is_string($_ENV['ALLOWED_MIME_TYPES'])) {
+        $_ENV['ALLOWED_MIME_TYPES'] = explode(',', $_ENV['ALLOWED_MIME_TYPES']);
+    } else if (!is_array($_ENV['ALLOWED_MIME_TYPES'])) {
+        throw new Exception('ALLOWED_MIME_TYPES environment variable is not a valid string or array.');
     }
     
     // Check if the directories JSON is valid
