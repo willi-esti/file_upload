@@ -26,10 +26,10 @@ if (isset($_GET['file'])) {
     
     // Delete the file
     if (unlink($filepath)) {
-        header('Location: index.php?message=File deleted successfully');
+        header('Location: flux.php?message=File deleted successfully');
         exit;
     } else {
-        header('Location: index.php?message=Failed to delete file');
+        header('Location: flux.php?message=Failed to delete file');
         exit;
     }
 }
@@ -58,10 +58,10 @@ elseif (isset($_GET['action']) && $_GET['action'] === 'delete_all') {
     }
     
     if ($failed === 0) {
-        header('Location: index.php?message=All files deleted successfully');
+        header('Location: flux.php?message=All files deleted successfully');
         exit;
     } else {
-        header('Location: index.php?message=' . $deleted . ' files deleted, ' . $failed . ' failed');
+        header('Location: flux.php?message=' . $deleted . ' files deleted, ' . $failed . ' failed');
         exit;
     }
 } else {
