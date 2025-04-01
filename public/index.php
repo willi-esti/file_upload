@@ -3,7 +3,7 @@
 require_once __DIR__ . '/../utils/auth_check.php';
 
 if (isLoggedIn()) {
-    header('Location: flux.php');
+    header('Location: ' . $_ENV['BASE_PATH'] . 'flux.php');
     exit;
 }
 
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['logged_in'] = true;
         $_SESSION['username'] = $username;
         
-        header('Location: flux.php');
+        header('Location: ' . $_ENV['BASE_PATH'] . 'flux.php');
         exit;
     } else {
         $error = "Invalid username or password.";

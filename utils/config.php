@@ -14,7 +14,7 @@ try {
     $dotenv->load();
 
     // Check if the required environment variables are set
-    $requiredEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'DIRECTORIES_JSON', 'ALLOWED_EXTENSIONS', 'ALLOWED_MIME_TYPES'];
+    $requiredEnvVars = ['ADMIN_USERNAME', 'ADMIN_PASSWORD', 'BASE_PATH', 'DIRECTORIES_JSON', 'ALLOWED_EXTENSIONS', 'ALLOWED_MIME_TYPES'];
     foreach ($requiredEnvVars as $var) {
         if (!isset($_ENV[$var])) {
             throw new Exception("Environment variable '$var' is not set.");
